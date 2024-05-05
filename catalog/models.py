@@ -6,6 +6,14 @@ from django.urls import reverse # Used in get_absolute_url() to get URL for spec
 from django.db.models import UniqueConstraint # Constrains fields to unique values
 from django.db.models.functions import Lower # Returns lower cased value of field
 
+from django.conf import settings
+from datetime import date
+
+
+
+
+
+
 class Genre(models.Model):
     """Model representing a book genre."""
     name = models.CharField(
@@ -46,8 +54,10 @@ class Book(models.Model):
 
     # ManyToManyField used because genre can contain many books. Books can cover many genres.
     # Genre class has already been defined so we can specify the object above.
+
     genre = models.ManyToManyField(
-        Genre, help_text="Select a genre for this book")
+        Genre, help_text="Select a genre for this book"
+    )
 
     def __str__(self):
         """String for representing the Model object."""
@@ -63,6 +73,7 @@ class Book(models.Model):
 
 import uuid # Required for unique book instances
 
+
 class BookInstance(models.Model):
 
     """Model representing a specific copy of a book (i.e. that can be borrowed from the library)."""
@@ -71,6 +82,7 @@ class BookInstance(models.Model):
     book = models.ForeignKey('Book', on_delete=models.RESTRICT, null=True)
     imprint = models.CharField(max_length=200)
     due_back = models.DateField(null=True, blank=True)
+    borrower = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     LOAN_STATUS = (
         ('m', 'Maintenance'),
@@ -80,19 +92,30 @@ class BookInstance(models.Model):
     )
 
     status = models.CharField(
+
         max_length=1,
         choices=LOAN_STATUS,
+
         blank=True,
         default='m',
         help_text='Book availability',
     )
 
     class Meta:
+
         ordering = ['due_back']
+        permissions = (("can_mark_returned", "Set book as returned"),)
 
     def __str__(self):
+
         """String for representing the Model object."""
         return f'{self.id} ({self.book.title})'
+
+    @property
+    def is_overdue(self):
+        """Determines if the book is overdue based on due date and current date."""
+        return bool(self.due_back and date.today() > self.due_back)
+
 
 class Author(models.Model):
     """Model representing an author."""
@@ -102,6 +125,7 @@ class Author(models.Model):
     date_of_death = models.DateField('Died', null=True, blank=True)
 
     class Meta:
+
         ordering = ['last_name', 'first_name']
 
     def get_absolute_url(self):
@@ -112,11 +136,13 @@ class Author(models.Model):
         """String for representing the Model object."""
         return f'{self.last_name}, {self.first_name}'
 
+
 class Language(models.Model):
     """Model representing a Language (e.g. English, French, Japanese, etc.)"""
-    name = models.CharField(max_length=200,
-                            unique=True,
-                            help_text="Enter the book's natural language (e.g. English, French, Japanese etc.)")
+    name = models.CharField( max_length=200,
+                             unique=True,
+                             help_text="Enter the book's natural language (e.g. English, French, Japanese etc.)"
+                            )
 
     def get_absolute_url(self):
         """Returns the url to access a particular language instance."""
@@ -124,4 +150,4 @@ class Language(models.Model):
 
     def __str__(self):
         """String for representing the Model object (in Admin site etc.)"""
-        return self.name
+        return self.name1
